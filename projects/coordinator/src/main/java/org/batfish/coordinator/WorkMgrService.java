@@ -32,8 +32,6 @@ import org.codehaus.jettison.json.JSONObject;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
 /** */
-
-/** */
 @Path(CoordConsts.SVC_CFG_WORK_MGR)
 public class WorkMgrService {
 

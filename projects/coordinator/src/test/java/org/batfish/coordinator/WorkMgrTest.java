@@ -160,5 +160,4 @@ public class WorkMgrTest {
     _thrown.expectMessage(equalTo("Error listing directory '" + containerDir.toString() + "'"));
     _manager.getContainer(containerDir);
   }
-
 }

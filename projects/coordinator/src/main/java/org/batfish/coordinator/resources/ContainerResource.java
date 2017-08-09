@@ -7,6 +7,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -96,15 +97,12 @@ public class ContainerResource {
         .build();
   }
 
-  /*
-  /** Relocate the request to TestrigResource. * /
+  /** Relocate the request to TestrigResource. */
   @Path("/testrig/{id}")
-  public org.batfish.coordinator.resources.TestrigResource getResource
-  (@PathParam("id") String id) {
-  validate();
-  return new TestrigResource(this._uriInfo, this._name, id);
+  public org.batfish.coordinator.resources.TestrigResource getResource(@PathParam("id") String id) {
+    validate();
+    return new TestrigResource(this._uriInfo, this._name, id);
   }
-  */
 
   /** Validates the container {@link #_name} exists and {@link #_apiKey} has accessibility to it. */
   private void validate() {

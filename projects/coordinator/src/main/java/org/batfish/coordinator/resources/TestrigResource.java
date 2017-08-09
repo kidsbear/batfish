@@ -1,7 +1,7 @@
 package org.batfish.coordinator.resources;
 
 import java.io.InputStream;
-import java.util.List;
+import java.util.Set;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -45,8 +45,10 @@ public class TestrigResource {
   public Response getTestrig() {
     _logger.info("WMS: getTestrig: '" + _name + "'\n");
     validates();
-    List<String> configs = null;
-    Testrig testrig = Testrig.of(_name, configs);
+    Set<String> configs = null;
+    Set<String> environments = null;
+    Set<String> questions = null;
+    Testrig testrig = Testrig.of(_name, configs, environments, questions);
     return Response.ok(testrig).build();
   }
 

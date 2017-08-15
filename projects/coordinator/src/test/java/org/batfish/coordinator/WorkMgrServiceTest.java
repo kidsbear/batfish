@@ -1,17 +1,11 @@
 package org.batfish.coordinator;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-import java.nio.file.Path;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import javax.ws.rs.core.Response;
 import org.batfish.common.BatfishLogger;
-import org.batfish.common.util.BatfishObjectMapper;
 import org.batfish.coordinator.config.Settings;
-import org.batfish.datamodel.pojo.Container;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -67,21 +61,21 @@ public class WorkMgrServiceTest {
     assertThat(actualMessage, equalTo(expected));
   }
 
-  @Test
-  public void getNonEmptyContainer() throws Exception {
-    initContainerEnvironment();
-    Path containerPath = _folder.getRoot().toPath().resolve(_containerName);
-    Path testrigPath = containerPath.resolve("testrig1");
-    assertThat(testrigPath.toFile().mkdir(), is(true));
-    Path testrigPath2 = containerPath.resolve("testrig2");
-    assertThat(testrigPath2.toFile().mkdir(), is(true));
-    Response response = _service.getContainer("100", "0.0.0", _containerName);
-    BatfishObjectMapper mapper = new BatfishObjectMapper();
-    Container container = mapper.readValue(response.getEntity().toString(), Container.class);
-    assertThat(container.getName(), equalTo(_containerName));
-    SortedSet<String> expectedTestrigs = new TreeSet<>();
-    expectedTestrigs.add("testrig1");
-    expectedTestrigs.add("testrig2");
-    assertThat(container.getTestrigs(), equalTo(expectedTestrigs));
-  }
+  //  @Test
+  //  public void getNonEmptyContainer() throws Exception {
+  //    initContainerEnvironment();
+  //    Path containerPath = _folder.getRoot().toPath().resolve(_containerName);
+  //    Path testrigPath = containerPath.resolve("testrig1");
+  //    assertThat(testrigPath.toFile().mkdir(), is(true));
+  //    Path testrigPath2 = containerPath.resolve("testrig2");
+  //    assertThat(testrigPath2.toFile().mkdir(), is(true));
+  //    Response response = _service.getContainer("100", "0.0.0", _containerName);
+  //    BatfishObjectMapper mapper = new BatfishObjectMapper();
+  //    Container container = mapper.readValue(response.getEntity().toString(), Container.class);
+  //    assertThat(container.getName(), equalTo(_containerName));
+  //    SortedSet<String> expectedTestrigs = new TreeSet<>();
+  //    expectedTestrigs.add("testrig1");
+  //    expectedTestrigs.add("testrig2");
+  //    assertThat(container.getTestrigs(), equalTo(expectedTestrigs));
+  //  }
 }

@@ -32,7 +32,8 @@ public final class Container {
     return new Container(name, testrigs, analyses);
   }
 
-  private Container(String name, @Nullable SortedSet<String> testrigs, @Nullable List<Analysis> analyses) {
+  private Container(
+      String name, @Nullable SortedSet<String> testrigs, @Nullable List<Analysis> analyses) {
     this._name = name;
     this._testrigs = testrigs;
     this._analyses = analyses;
@@ -43,12 +44,14 @@ public final class Container {
     return _name;
   }
 
-  @Nullable @JsonProperty(PROP_TESTRIGS)
+  @Nullable
+  @JsonProperty(PROP_TESTRIGS)
   public SortedSet<String> getTestrigs() {
     return _testrigs;
   }
 
-  @Nullable @JsonProperty(PROP_ANALYSES)
+  @Nullable
+  @JsonProperty(PROP_ANALYSES)
   public List<Analysis> getAnalyses() {
     return _analyses;
   }

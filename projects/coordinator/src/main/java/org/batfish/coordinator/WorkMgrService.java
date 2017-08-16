@@ -1,13 +1,10 @@
 package org.batfish.coordinator;
 
-import com.google.common.base.Strings;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.security.AccessControlException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.UUID;
@@ -156,18 +153,11 @@ public class WorkMgrService {
       checkClientVersion(clientVersion);
       checkContainerAccessibility(apiKey, containerName);
 
-      boolean newAnalysis = !Strings.isNullOrEmpty(newAnalysisStr);
-      List<String> questionToDelete = new ArrayList<>();
-      if (!Strings.isNullOrEmpty(delQuestions)) {
-        JSONArray delQuestionsArray = new JSONArray(delQuestions);
-        for (int i = 0; i < delQuestionsArray.length(); i++) {
-          questionToDelete.add(delQuestionsArray.getString(i));
-        }
-      }
+      boolean newAnalysis = (newAnalysisStr == null || newAnalysisStr.equals("")) ? false : true;
 
       Main.getWorkMgr()
           .configureAnalysis(
-              containerName, newAnalysis, analysisName, addQuestionsStream, questionToDelete);
+              containerName, newAnalysis, analysisName, addQuestionsStream, delQuestions);
 
       return new JSONArray(
           Arrays.asList(

@@ -525,7 +525,7 @@ public class WorkMgr {
                 .map(dir -> dir.getFileName().toString())
                 .collect(Collectors.toSet()));
 
-    return Container.of(containerDir.toFile().getName(), testrigs);
+    return Container.of(containerDir.toFile().getName(), testrigs, null);
   }
 
   private Path getdirAnalysisQuestion(String containerName, String analysisName, String qName) {

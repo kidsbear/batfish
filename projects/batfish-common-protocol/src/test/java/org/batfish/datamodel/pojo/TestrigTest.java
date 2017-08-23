@@ -51,7 +51,8 @@ public class TestrigTest {
         new Testrig("testrig", analysisAnswers, environments, questions, configurations);
     String expected =
         String.format(
-            "Testrig{name=testrig, analysisAnswers=%s, environments=%s, questions=%s, configurations=%s}",
+            "Testrig{name=testrig, analysisAnswers=%s, environments=%s,"
+                + " questions=%s, configurations=%s}",
             analysisAnswers, environments, questions, configurations);
     assertThat(testrig.toString(), equalTo(expected));
   }

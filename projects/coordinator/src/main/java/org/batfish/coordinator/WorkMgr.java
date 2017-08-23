@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +40,8 @@ import org.batfish.common.util.ZipUtility;
 import org.batfish.coordinator.config.Settings;
 import org.batfish.datamodel.answers.Answer;
 import org.batfish.datamodel.answers.AnswerStatus;
+import org.batfish.datamodel.pojo.Analysis;
+import org.batfish.datamodel.pojo.Testrig;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -525,8 +526,17 @@ public class WorkMgr {
    * containerName}
    */
   public Container getContainer(String containerName) {
-    SortedSet<String> testrigs = listTestrigs(containerName);
-    return new Container(containerName, new ArrayList<>(testrigs), new HashMap<>());
+    SortedSet<String> testrigNames = listTestrigs(containerName);
+    List<Testrig> testrigs = new ArrayList<>();
+    for (String testrigName : testrigNames) {
+      testrigs.add(new Testrig(testrigName, null, null, null, null));
+    }
+    SortedSet<String> analysisNames = listAnalyses(containerName);
+    List<Analysis> analyses = new ArrayList<>();
+    for (String analysisName : analysisNames) {
+      analyses.add(new Analysis(analysisName, null));
+    }
+    return new Container(containerName, testrigs, analyses);
   }
 
   private Path getdirAnalysisQuestion(String containerName, String analysisName, String qName) {

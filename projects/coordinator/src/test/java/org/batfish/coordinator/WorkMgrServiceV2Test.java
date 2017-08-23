@@ -76,7 +76,7 @@ public class WorkMgrServiceV2Test extends JerseyTest {
   @Test
   public void getContainer() throws Exception {
     String containerName = "some container";
-    Container expected = new Container(containerName, Lists.newArrayList(), Maps.newHashMap());
+    Container expected = new Container(containerName, Lists.newArrayList(), Lists.newArrayList());
     Main.getWorkMgr().initContainer(containerName, null);
 
     Response response = target("/v2/container").path(containerName).request().get();

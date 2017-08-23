@@ -8,7 +8,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -18,6 +17,7 @@ import org.batfish.common.BatfishLogger;
 import org.batfish.common.BfConsts;
 import org.batfish.common.Container;
 import org.batfish.coordinator.config.Settings;
+import org.batfish.datamodel.pojo.Testrig;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -130,7 +130,7 @@ public class WorkMgrTest {
     _manager.initContainer("container", null);
     Container container = _manager.getContainer("container");
     assertThat(
-        container, equalTo(new Container("container", Lists.newArrayList(), Maps.newHashMap())));
+        container, equalTo(new Container("container", Lists.newArrayList(), Lists.newArrayList())));
   }
 
   @Test
@@ -143,7 +143,11 @@ public class WorkMgrTest {
     Container container = _manager.getContainer("container");
     assertThat(
         container,
-        equalTo(new Container("container", Lists.newArrayList("testrig"), Maps.newHashMap())));
+        equalTo(
+            new Container(
+                "container",
+                Lists.newArrayList(new Testrig("testrig", null, null, null, null)),
+                Lists.newArrayList())));
   }
 
   @Test

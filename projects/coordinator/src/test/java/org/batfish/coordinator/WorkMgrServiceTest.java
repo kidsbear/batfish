@@ -7,7 +7,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.ws.rs.core.Response;
@@ -18,6 +17,7 @@ import org.batfish.common.CoordConsts;
 import org.batfish.common.Version;
 import org.batfish.common.util.BatfishObjectMapper;
 import org.batfish.coordinator.config.Settings;
+import org.batfish.datamodel.pojo.Testrig;
 import org.codehaus.jettison.json.JSONArray;
 import org.junit.Rule;
 import org.junit.Test;
@@ -84,7 +84,10 @@ public class WorkMgrServiceTest {
     BatfishObjectMapper mapper = new BatfishObjectMapper();
     Container container = mapper.readValue(response.getEntity().toString(), Container.class);
     Container expected =
-        new Container(_containerName, Lists.newArrayList("testrig"), Maps.newHashMap());
+        new Container(
+            _containerName,
+            Lists.newArrayList(new Testrig("testrig", null, null, null, null)),
+            Lists.newArrayList());
     assertThat(container, equalTo(expected));
   }
 

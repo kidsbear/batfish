@@ -3,13 +3,8 @@ package org.batfish.datamodel.pojo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.testing.EqualsTester;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import org.batfish.datamodel.answers.Answer;
+import java.util.Date;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -20,97 +15,40 @@ public class TestrigTest {
 
   @Test
   public void testConstructorAndGetter() {
-    Environment environment = new Environment("environment", null, null, null, null, null, null);
-    List<AnalysisAnswer> analysisAnswers =
-        Lists.newArrayList(new AnalysisAnswer("analysis", environment, null));
-    List<Environment> environments = Lists.newArrayList(environment);
-    List<TestrigQuestion> questions =
-        Lists.newArrayList(
-            new TestrigQuestion("question", "questionContent", environment, new Answer()));
-    Map<String, String> configurations = Collections.singletonMap("config", "configContent");
-    Testrig testrig =
-        new Testrig("testrig", analysisAnswers, environments, questions, configurations);
+    Date now = new Date();
+    Testrig testrig = new Testrig("testrig", now, 0, 0);
     assertThat(testrig.getName(), equalTo("testrig"));
-    assertThat(testrig.getAnalysisAnswers(), equalTo(analysisAnswers));
-    assertThat(testrig.getEnvironments(), equalTo(environments));
-    assertThat(testrig.getQuestions(), equalTo(questions));
-    assertThat(testrig.getConfigurations(), equalTo(configurations));
+    assertThat(testrig.getCreatedAt(), equalTo(now));
+    assertThat(testrig.getEnvironmentsCount(), equalTo(0));
+    assertThat(testrig.getConfigurationsCount(), equalTo(0));
   }
 
   @Test
   public void testToString() {
-    Environment environment = new Environment("environment", null, null, null, null, null, null);
-    List<AnalysisAnswer> analysisAnswers =
-        Lists.newArrayList(new AnalysisAnswer("analysis", environment, null));
-    List<Environment> environments = Lists.newArrayList(environment);
-    List<TestrigQuestion> questions =
-        Lists.newArrayList(
-            new TestrigQuestion("question", "questionContent", environment, new Answer()));
-    Map<String, String> configurations = Collections.singletonMap("config", "configContent");
-    Testrig testrig =
-        new Testrig("testrig", analysisAnswers, environments, questions, configurations);
+    Date now = new Date();
+    Testrig testrig = new Testrig("testrig", now, 1, 2);
     String expected =
         String.format(
-            "Testrig{name=testrig, analysisAnswers=%s, environments=%s, questions=%s, configurations=%s}",
-            analysisAnswers, environments, questions, configurations);
+            "Testrig{name=testrig, createdAt=%s, environmentsCount=%s, configurationsCount=%s}",
+            now, 1, 2);
     assertThat(testrig.toString(), equalTo(expected));
   }
 
   @Test
   public void testEquals() {
-    Environment environment = new Environment("environment", null, null, null, null, null, null);
-    List<AnalysisAnswer> analysisAnswers =
-        Lists.newArrayList(new AnalysisAnswer("analysis", environment, null));
-    List<Environment> environments = Lists.newArrayList(environment);
-    List<TestrigQuestion> questions =
-        Lists.newArrayList(
-            new TestrigQuestion("question", "questionContent", environment, new Answer()));
-    Map<String, String> configurations = Collections.singletonMap("config", "configContent");
-    Testrig t =
-        new Testrig(
-            "foo",
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Maps.newHashMap());
-    Testrig tCopy =
-        new Testrig(
-            "foo",
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Maps.newHashMap());
-    Testrig tWithAnalysisAnswers =
-        new Testrig(
-            "foo", analysisAnswers, Lists.newArrayList(), Lists.newArrayList(), Maps.newHashMap());
-    Testrig tWithEnvironments =
-        new Testrig(
-            "foo", Lists.newArrayList(), environments, Lists.newArrayList(), Maps.newHashMap());
-    Testrig tWithQuestions =
-        new Testrig(
-            "foo", Lists.newArrayList(), Lists.newArrayList(), questions, Maps.newHashMap());
-    Testrig tWithConfigurations =
-        new Testrig(
-            "foo",
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            configurations);
-    Testrig tOtherName =
-        new Testrig(
-            "bar",
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Lists.newArrayList(),
-            Maps.newHashMap());
+    Date now = new Date();
+    Testrig testrig = new Testrig("testrig", now, 0, 0);
+    Testrig tCopy = new Testrig("testrig", now, 0, 0);
+    Date otherTime = new Date();
+    Testrig tOtherTime = new Testrig("testrig", otherTime, 0, 0);
+    Testrig tWithEnvs = new Testrig("testrig", now, 1, 0);
+    Testrig tWithCondigs = new Testrig("testrig", now, 0, 1);
 
     new EqualsTester()
-        .addEqualityGroup(t, tCopy)
-        .addEqualityGroup(tWithAnalysisAnswers)
-        .addEqualityGroup(tWithEnvironments)
-        .addEqualityGroup(tWithQuestions)
-        .addEqualityGroup(tWithConfigurations)
-        .addEqualityGroup(tOtherName)
+        .addEqualityGroup(testrig, tCopy)
+        .addEqualityGroup(tOtherTime)
+        .addEqualityGroup(tWithEnvs)
+        .addEqualityGroup(tWithCondigs)
         .testEquals();
   }
 }

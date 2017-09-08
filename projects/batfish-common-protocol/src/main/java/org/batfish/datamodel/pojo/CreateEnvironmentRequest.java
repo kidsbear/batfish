@@ -3,6 +3,7 @@ package org.batfish.datamodel.pojo;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -45,8 +46,8 @@ public class CreateEnvironmentRequest {
     this._edgeBlacklist = edgeBlacklist;
     this._interfaceBlacklist = interfaceBlacklist;
     this._nodeBlacklist = nodeBlacklist;
-    this._bgpTables = bgpTables;
-    this._routingTables = routingTables;
+    this._bgpTables = bgpTables == null? new ArrayList<>() : bgpTables;
+    this._routingTables = routingTables == null? new ArrayList<>(): routingTables;
     this._externalBgpAnnouncements = externalBgpAnnouncements;
   }
 

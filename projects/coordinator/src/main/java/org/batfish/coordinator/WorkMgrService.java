@@ -30,6 +30,7 @@ import org.batfish.common.Version;
 import org.batfish.common.WorkItem;
 import org.batfish.common.util.BatfishObjectMapper;
 import org.batfish.coordinator.config.Settings;
+import org.batfish.datamodel.pojo.CreateEnvironmentRequest;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -1293,8 +1294,7 @@ public class WorkMgrService {
       @FormDataParam(CoordConsts.SVC_KEY_CONTAINER_NAME) String containerName,
       @FormDataParam(CoordConsts.SVC_KEY_TESTRIG_NAME) String testrigName,
       @FormDataParam(CoordConsts.SVC_KEY_BASE_ENV_NAME) String baseEnvName,
-      @FormDataParam(CoordConsts.SVC_KEY_ENV_NAME) String envName,
-      @FormDataParam(CoordConsts.SVC_KEY_ZIPFILE) InputStream fileStream) {
+      @FormDataParam(CoordConsts.SVC_KEY_ENVIRONMENT_REQUEST) CreateEnvironmentRequest request) {
     try {
       _logger.info(
           "WMS:uploadEnvironment "
@@ -1304,21 +1304,20 @@ public class WorkMgrService {
               + " "
               + testrigName
               + " / "
-              + envName
+              + request.getName()
               + "\n");
 
       checkStringParam(apiKey, "API key");
       checkStringParam(clientVersion, "Client version");
       checkStringParam(containerName, "Container name");
       checkStringParam(testrigName, "Testrig name");
-      checkStringParam(envName, "Environment name");
 
       checkApiKeyValidity(apiKey);
       checkClientVersion(clientVersion);
       checkContainerAccessibility(apiKey, containerName);
 
       Main.getWorkMgr()
-          .uploadEnvironment(containerName, testrigName, baseEnvName, envName, fileStream);
+          .uploadEnvironment(containerName, testrigName, baseEnvName, request);
 
       return new JSONArray(
           Arrays.asList(

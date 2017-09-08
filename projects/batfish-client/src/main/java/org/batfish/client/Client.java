@@ -1485,7 +1485,6 @@ public class Client extends AbstractClient implements IClient {
     if (!_workHelper.uploadEnvironment(_currContainerName,
         testrigName,
         baseEnvName,
-        newEnvName,
         request)) {
       return false;
     }

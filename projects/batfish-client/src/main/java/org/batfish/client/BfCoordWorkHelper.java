@@ -1041,7 +1041,6 @@ public class BfCoordWorkHelper {
       String containerName,
       String testrigName,
       String baseEnvName,
-      String envName,
       CreateEnvironmentRequest request) {
     try {
       WebTarget webTarget = getTarget(CoordConsts.SVC_RSC_UPLOAD_ENV);
@@ -1051,15 +1050,13 @@ public class BfCoordWorkHelper {
       addTextMultiPart(multiPart, CoordConsts.SVC_KEY_CONTAINER_NAME, containerName);
       addTextMultiPart(multiPart, CoordConsts.SVC_KEY_TESTRIG_NAME, testrigName);
       addTextMultiPart(multiPart, CoordConsts.SVC_KEY_BASE_ENV_NAME, baseEnvName);
-      addTextMultiPart(multiPart, CoordConsts.SVC_KEY_ENV_NAME, envName);
       addJsonMultiPart(multiPart, CoordConsts.SVC_KEY_ENVIRONMENT_REQUEST, request);
       return postData(webTarget, multiPart) != null;
     } catch (Exception e) {
         _logger.errorf(
-            "Exception when uploading environment to %s using (%s, %s, %s): %s\n",
+            "Exception when uploading environment to %s using (%s, %s): %s\n",
             _coordWorkMgr,
             testrigName,
-            envName,
             baseEnvName,
             request,
             ExceptionUtils.getStackTrace(e));

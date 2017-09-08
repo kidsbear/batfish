@@ -1,18 +1,15 @@
 package org.batfish.coordinator;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -44,9 +41,9 @@ import org.batfish.datamodel.Edge;
 import org.batfish.datamodel.answers.Answer;
 import org.batfish.datamodel.answers.AnswerStatus;
 import org.batfish.datamodel.collections.NodeInterfacePair;
-import org.batfish.datamodel.pojo.Analysis;
+import org.batfish.datamodel.pojo.CreateEnvironmentRequest;
 import org.batfish.datamodel.pojo.Environment;
-import org.batfish.datamodel.pojo.Environment.Builder;
+import org.batfish.datamodel.pojo.FileObject;
 import org.batfish.storage.Storage;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -325,7 +322,7 @@ public class WorkMgr {
    * @param newAnalysis Whether or not to create a new analysis. Incompatible with {@code
    *     delQuestionsStr}.
    * @param aName The name of the analysis
-   * @param addQuestionsFileStream The questions to be added to or initially populate the analysis.
+   * @param questionsToAdd The questions to be added to or initially populate the analysis.
    * @param questionsToDelete A list of question names to be deleted from the analysis. Incompatible
    *     with {@code newAnalysis}.
    */
@@ -333,46 +330,51 @@ public class WorkMgr {
       String containerName,
       boolean newAnalysis,
       String aName,
-      InputStream addQuestionsFileStream,
+      Map<String, String> questionsToAdd,
       List<String> questionsToDelete) {
-    Analysis storedAnalysis;
-    if (newAnalysis) {
-      storedAnalysis = _storage.saveAnalysis(containerName, new Analysis(aName, new HashMap<>()));
-    } else {
-      storedAnalysis = _storage.getAnalysis(containerName, aName);
+    Path containerDir = getdirContainer(containerName);
+    Path aDir = containerDir.resolve(Paths.get(BfConsts.RELPATH_ANALYSES_DIR, aName));
+    if (Files.exists(aDir) && newAnalysis) {
+      throw new BatfishException(
+          "Analysis '" + aName + "' already exists for container '" + containerName);
     }
-
-    if (addQuestionsFileStream != null) {
-      JSONObject jObject = CommonUtil.writeStreamToJSONObject(addQuestionsFileStream);
-      Iterator<?> keys = jObject.keys();
-      while (keys.hasNext()) {
-        String qName = (String) keys.next();
-        JSONObject qJson;
-        try {
-          qJson = jObject.getJSONObject(qName);
-        } catch (JSONException e) {
-          throw new BatfishException("Provided questions lack a question named '" + qName + "'", e);
-        }
-        try {
-          storedAnalysis.addQuestion(qName, qJson.toString(1));
-        } catch (JSONException e) {
-          throw new BatfishException("Failed to convert question JSON to string", e);
-        }
+    if (!Files.exists(aDir)) {
+      if (!newAnalysis) {
+        throw new BatfishException(
+            "Analysis '" + aName + "' does not exist for container '" + containerName + "'");
       }
+      if (!aDir.toFile().mkdirs()) {
+        throw new BatfishException("Failed to create analysis directory '" + aDir + "'");
+      }
+    }
+    Path questionsDir = aDir.resolve(BfConsts.RELPATH_QUESTIONS_DIR);
+    for (Entry<String, String> entry : questionsToAdd.entrySet()) {
+      Path qDir = questionsDir.resolve(entry.getKey());
+      if (Files.exists(qDir)) {
+        throw new BatfishException(String.format("Question '%s' already exists for analysis '%s'",
+            entry.getKey(),
+            aName));
+      }
+      if (!qDir.toFile().mkdirs()) {
+        throw new BatfishException(String.format("Failed to create question directory '%s'", qDir));
+      }
+      Path qFile = qDir.resolve(BfConsts.RELPATH_QUESTION_FILE);
+      CommonUtil.writeFile(qFile, entry.getValue());
     }
 
     /** Delete questions */
     for (String qName : questionsToDelete) {
-      storedAnalysis.deleteQuestion(qName);
+      Path qDir = questionsDir.resolve(qName);
+      if (!Files.exists(qDir)) {
+        throw new BatfishException("Question " + qName + " does not exist for analysis " + aName);
+      }
+      CommonUtil.deleteDirectory(qDir);
     }
-    _storage.updateAnalysis(containerName, storedAnalysis);
   }
 
   public void delAnalysis(String containerName, String aName) {
-    if (!_storage.deleteAnalysis(containerName, aName, true)) {
-      throw new BatfishException(
-          String.format("Analysis '%s' doesn't exist for container '%s'", aName, containerName));
-    }
+    Path aDir = getdirContainerAnalysis(containerName, aName);
+    CommonUtil.deleteDirectory(aDir);
   }
 
   public boolean delContainer(String containerName) {
@@ -768,10 +770,8 @@ public class WorkMgr {
     return listContainers(apiKey).stream().map(this::getContainer).collect(Collectors.toList());
   }
 
-  public SortedSet<String> listEnvironments(String containerName, String testrigName) {
-    SortedSet<String> envs =
-        new TreeSet<>(_storage.listEnvironments(containerName, testrigName));
-    return envs;
+  public List<Environment> listEnvironments(String containerName, String testrigName) {
+    return _storage.listEnvironments(containerName, testrigName);
   }
 
   public SortedSet<String> listQuestions(String containerName, String testrigName) {
@@ -886,135 +886,50 @@ public class WorkMgr {
    *     reside
    * @param baseEnvName The name of an optional base environment. The new environment is initialized
    *     with files from this base if it is provided.
-   * @param newEnvName The name of the new environment to be created
-   * @param fileStream A stream providing the zip file containing the file structure of the new
-   *     environment.
+   * @param request A request contains all information needed to create an environment
    */
   public void uploadEnvironment(
       String containerName,
       String testrigName,
-      String baseEnvName,
-      String newEnvName,
-      InputStream fileStream) {
-    Environment environment = readEnvironmentObject(fileStream, newEnvName);
+      String baseEnvName, CreateEnvironmentRequest request) {
+    CreateEnvironmentRequest environmentToUpdate = request;
     if (!Strings.isNullOrEmpty(baseEnvName)) {
-      environment =
-          mergeEnvironments(
-              _storage.getEnvironment(containerName, testrigName, baseEnvName), environment);
+      environmentToUpdate = mergeCreateEnvironmentRequests(_storage.getCreateEnvironmentRequest(
+          containerName,
+          testrigName,
+          baseEnvName), request);
     }
-    _storage.saveEnvironment(containerName, testrigName, environment);
+    _storage.saveEnvironment(containerName, testrigName, environmentToUpdate);
   }
 
-  //This method populates the Environment object from the given filestream
-  private Environment readEnvironmentObject(InputStream fileStream, String newEnvName) {
-    Path zipFile = CommonUtil.createTempFile("coord_up_env_", ".zip");
-    CommonUtil.writeStreamToFile(fileStream, zipFile);
-    // now unzip
-    Path unzipDir = CommonUtil.createTempDirectory("coord_up_env_unzip_dir_");
-    UnzipUtility.unzip(zipFile, unzipDir);
-
-    /*-
-     *  Sanity check what we got:
-     *    There should be just one top-level folder
-     */
-    SortedSet<Path> unzipDirEntries = CommonUtil.getEntries(unzipDir);
-    if (unzipDirEntries.size() != 1 || !Files.isDirectory(unzipDirEntries.iterator().next())) {
-      CommonUtil.deleteDirectory(unzipDir);
-      throw new BatfishException(
-          "Unexpected packaging of environment. There should be just one top-level folder");
-    }
-    Path unzipSubdir = unzipDirEntries.iterator().next();
-    SortedSet<Path> subFileList = CommonUtil.getEntries(unzipSubdir);
-    BatfishObjectMapper mapper = new BatfishObjectMapper();
-    Builder envBuilder = Environment.builder();
-    envBuilder.setName(newEnvName);
-    // things look ok, now make the move
-    try {
-      for (Path subdirFile : subFileList) {
-        switch (subdirFile.getFileName().toString()) {
-          case BfConsts.RELPATH_EDGE_BLACKLIST_FILE:
-            List<Edge> edgeBlackList =
-                mapper.readValue(
-                    CommonUtil.readFile(subdirFile), new TypeReference<List<Edge>>() {});
-            envBuilder.setEdgeBlacklist(edgeBlackList);
-            break;
-          case BfConsts.RELPATH_NODE_BLACKLIST_FILE:
-            List<String> nodeBlacklist =
-                mapper.readValue(
-                    CommonUtil.readFile(subdirFile), new TypeReference<List<String>>() {});
-            envBuilder.setNodeBlacklist(nodeBlacklist);
-            break;
-          case BfConsts.RELPATH_INTERFACE_BLACKLIST_FILE:
-            List<NodeInterfacePair> interfaceBlacklist =
-                mapper.readValue(
-                    CommonUtil.readFile(subdirFile),
-                    new TypeReference<List<NodeInterfacePair>>() {});
-            envBuilder.setInterfaceBlacklist(interfaceBlacklist);
-            break;
-          case BfConsts.RELPATH_ENVIRONMENT_BGP_TABLES:
-            Map<String, String> bgpTables = new HashMap<>();
-            if (Files.isDirectory(subdirFile)) {
-              CommonUtil.getEntries(subdirFile)
-                  .forEach(
-                      path -> {
-                        bgpTables.put(path.getFileName().toString(), CommonUtil.readFile(path));
-                      });
-            }
-            envBuilder.setBgpTables(bgpTables);
-            break;
-          case BfConsts.RELPATH_ENVIRONMENT_ROUTING_TABLES:
-            Map<String, String> routingTables = new HashMap<>();
-            if (Files.isDirectory(subdirFile)) {
-              CommonUtil.getEntries(subdirFile)
-                  .forEach(
-                      path -> {
-                        routingTables.put(path.getFileName().toString(), CommonUtil.readFile(path));
-                      });
-            }
-            envBuilder.setRoutingTables(routingTables);
-            break;
-          case BfConsts.RELPATH_EXTERNAL_BGP_ANNOUNCEMENTS:
-            envBuilder.setExternalBgpAnnouncements(CommonUtil.readFile(subdirFile));
-            break;
-          default:
-            continue;
-        }
-      }
-    } catch (IOException e) {
-      throw new BatfishException("Environment is not properly formatted");
-    }
-    CommonUtil.deleteDirectory(unzipDir);
-    CommonUtil.deleteIfExists(zipFile);
-    return envBuilder.build();
-  }
-
-
-  public Environment mergeEnvironments(Environment oldEnv, Environment newEnv) {
-    Environment.Builder envBuilder = Environment.builder();
-    envBuilder.setName(newEnv.getName());
-    envBuilder.setInterfaceBlacklist(
-        newEnv.getInterfaceBlacklist().isEmpty()
-            ? oldEnv.getInterfaceBlacklist()
-            : newEnv.getInterfaceBlacklist());
-    envBuilder.setNodeBlacklist(
-        newEnv.getNodeBlacklist().isEmpty()
-            ? oldEnv.getNodeBlacklist()
-            : newEnv.getNodeBlacklist());
-    envBuilder.setEdgeBlacklist(
-        newEnv.getEdgeBlacklist().isEmpty()
-            ? oldEnv.getEdgeBlacklist()
-            : newEnv.getEdgeBlacklist());
-    envBuilder.setBgpTables(
-        newEnv.getBgpTables().isEmpty() ? oldEnv.getBgpTables() : newEnv.getBgpTables());
-    envBuilder.setBgpTables(
-        newEnv.getRoutingTables().isEmpty()
-            ? oldEnv.getRoutingTables()
-            : newEnv.getRoutingTables());
-    envBuilder.setExternalBgpAnnouncements(
-        Strings.isNullOrEmpty(newEnv.getExternalBgpAnnouncements())
-            ? oldEnv.getExternalBgpAnnouncements()
-            : newEnv.getExternalBgpAnnouncements());
-    return envBuilder.build();
+  public CreateEnvironmentRequest mergeCreateEnvironmentRequests(CreateEnvironmentRequest oldEnv,
+      CreateEnvironmentRequest newEnv) {
+    List<Edge> edgeBlackList = newEnv.getEdgeBlacklist().isEmpty()
+        ? oldEnv.getEdgeBlacklist()
+        : newEnv.getEdgeBlacklist();
+    List<String> nodeBlacklist = newEnv.getNodeBlacklist().isEmpty()
+        ? oldEnv.getNodeBlacklist()
+        : newEnv.getNodeBlacklist();
+    List<NodeInterfacePair> interfaceBlacklist = newEnv.getInterfaceBlacklist().isEmpty()
+        ? oldEnv.getInterfaceBlacklist()
+        : newEnv.getInterfaceBlacklist();
+    List<FileObject> bgpTables = newEnv.getBgpTables().isEmpty()
+        ? oldEnv.getBgpTables()
+        : newEnv.getBgpTables();
+    List<FileObject> routingTables = newEnv.getRoutingTables().isEmpty()
+        ? oldEnv.getRoutingTables()
+        : newEnv.getRoutingTables();
+    String externalBgpAnnouncements = Strings.isNullOrEmpty(newEnv.getExternalBgpAnnouncements())
+        ? oldEnv.getExternalBgpAnnouncements()
+        : newEnv.getExternalBgpAnnouncements();
+    return new CreateEnvironmentRequest(
+        newEnv.getName(),
+        edgeBlackList,
+        interfaceBlacklist,
+        nodeBlacklist,
+        bgpTables,
+        routingTables,
+        externalBgpAnnouncements);
   }
 
 

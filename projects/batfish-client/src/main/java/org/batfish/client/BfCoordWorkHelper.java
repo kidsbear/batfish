@@ -3,6 +3,7 @@ package org.batfish.client;
 import com.google.common.collect.Iterators;
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -442,7 +443,8 @@ public class BfCoordWorkHelper {
   @Nullable
   public Container getContainer(String containerName) {
     try {
-      WebTarget webTarget = getTarget(CoordConsts.SVC_RSC_GET_CONTAINER);
+      String resource = Paths.get(CoordConsts.SVC_KEY_CONTAINERS, containerName).toString();
+      WebTarget webTarget = getTargetV2(resource);
 
       MultiPart multiPart = new MultiPart();
       multiPart.setMediaType(MediaType.MULTIPART_FORM_DATA_TYPE);
@@ -454,7 +456,8 @@ public class BfCoordWorkHelper {
       Response response =
           webTarget
               .request(MediaType.APPLICATION_JSON)
-              .post(Entity.entity(multiPart, multiPart.getMediaType()));
+              .header(CoordConsts.SVC_KEY_API_KEY, _settings.getApiKey())
+              .header(CoordConsts.SVC_KEY_VERSION, Version.getVersion()).get();
 
       _logger.debug(response.getStatus() + " " + response.getStatusInfo() + " " + response + "\n");
 
@@ -580,6 +583,15 @@ public class BfCoordWorkHelper {
     String urlString =
         String.format(
             "%s://%s%s/%s", protocol, _coordWorkMgr, CoordConsts.SVC_CFG_WORK_MGR, resource);
+    return _client.target(urlString);
+  }
+
+  private WebTarget getTargetV2(String resource) {
+    String protocol = (_settings.getSslDisable()) ? "http" : "https";
+    String coordWorkMgr = _settings.getCoordinatorHost() + ":" + CoordConsts.SVC_CFG_WORK_V2_PORT;
+    String urlString =
+        String.format(
+            "%s://%s%s/%s", protocol, coordWorkMgr, CoordConsts.SVC_CFG_WORK_MGR2, resource);
     return _client.target(urlString);
   }
 

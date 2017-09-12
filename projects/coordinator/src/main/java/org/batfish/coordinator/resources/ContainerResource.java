@@ -5,6 +5,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.POST;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -43,6 +44,15 @@ public class ContainerResource {
     validate();
     Container container = Main.getWorkMgr().getContainer(_name);
     return Response.ok(container).build();
+  }
+
+  /** Create a new container with name: {@link #_name}. */
+  @POST
+  public Response createContainer() {
+    _logger.infof("WMS: initContainer '%s'\n", _name);
+    String outputContainerName = Main.getWorkMgr().initContainer(_name, null);
+    Main.getAuthorizer().authorizeContainer(_apiKey, outputContainerName);
+    return Response.created(_uriInfo.getRequestUri()).build();
   }
 
   /** Delete a specified container with name: {@link #_name}. */

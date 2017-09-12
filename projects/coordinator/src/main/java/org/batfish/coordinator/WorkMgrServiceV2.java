@@ -1,9 +1,15 @@
 package org.batfish.coordinator;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -15,7 +21,9 @@ import javax.ws.rs.core.UriInfo;
 import org.batfish.common.BatfishLogger;
 import org.batfish.common.Container;
 import org.batfish.common.CoordConsts;
+import org.batfish.common.util.BatfishObjectMapper;
 import org.batfish.coordinator.resources.ContainerResource;
+import org.batfish.datamodel.pojo.CreateContainerRequest;
 
 /**
  * The Work Manager is a RESTful service for servicing client API calls.
@@ -53,6 +61,33 @@ public class WorkMgrServiceV2 {
     _logger.info("WMS:redirect container\n");
     return Response.status(Status.MOVED_PERMANENTLY)
         .location(_uriInfo.getRequestUri().resolve(CoordConsts.SVC_KEY_CONTAINERS))
+        .build();
+  }
+
+  /** Create a new container using request body. */
+  @POST
+  @Path(CoordConsts.SVC_KEY_CONTAINER_NAME)
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response createContainer(String createRequest) {
+    _logger.info("WMS:create container\n");
+    BatfishObjectMapper mapper = new BatfishObjectMapper();
+    CreateContainerRequest request;
+    try {
+      request = mapper.readValue(createRequest, new TypeReference<CreateContainerRequest>() {});
+    } catch (IOException e) {
+      throw new BadRequestException("The input JSON is not property formatted", e);
+    }
+    String outputContainerName;
+    if (request.getSetName()) {
+      outputContainerName = Main.getWorkMgr().initContainer(request.getName(), null);
+    } else {
+      outputContainerName = Main.getWorkMgr().initContainer(null, request.getName());
+    }
+    Main.getAuthorizer().authorizeContainer(_apiKey, outputContainerName);
+    return Response.created(
+            _uriInfo
+                .getBaseUri()
+                .resolve(Paths.get(CoordConsts.SVC_KEY_CONTAINERS, outputContainerName).toString()))
         .build();
   }
 

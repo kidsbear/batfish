@@ -1,5 +1,6 @@
 package org.batfish.client;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import java.io.File;
 import java.nio.file.Files;
@@ -31,6 +32,7 @@ import org.batfish.common.Version;
 import org.batfish.common.WorkItem;
 import org.batfish.common.util.BatfishObjectMapper;
 import org.batfish.common.util.CommonUtil;
+import org.batfish.datamodel.pojo.CreateContainerRequest;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.glassfish.jersey.media.multipart.FormDataBodyPart;
@@ -163,7 +165,8 @@ public class BfCoordWorkHelper {
           webTarget
               .request(MediaType.APPLICATION_JSON)
               .header(CoordConsts.SVC_KEY_API_KEY, _settings.getApiKey())
-              .header(CoordConsts.SVC_KEY_VERSION, Version.getVersion()).delete();
+              .header(CoordConsts.SVC_KEY_VERSION, Version.getVersion())
+              .delete();
 
       if (response.getStatus() != Status.NO_CONTENT.getStatusCode()) {
         _logger.error("delContainer: Did not get an noContent response\n");
@@ -454,7 +457,8 @@ public class BfCoordWorkHelper {
           webTarget
               .request(MediaType.APPLICATION_JSON)
               .header(CoordConsts.SVC_KEY_API_KEY, _settings.getApiKey())
-              .header(CoordConsts.SVC_KEY_VERSION, Version.getVersion()).get();
+              .header(CoordConsts.SVC_KEY_VERSION, Version.getVersion())
+              .get();
 
       _logger.debug(response.getStatus() + " " + response.getStatusInfo() + " " + response + "\n");
 
@@ -735,32 +739,35 @@ public class BfCoordWorkHelper {
 
   @Nullable
   public String initContainer(@Nullable String containerName, @Nullable String containerPrefix) {
+    CreateContainerRequest request;
+    if (Strings.isNullOrEmpty(containerName)) {
+      request = new CreateContainerRequest(containerPrefix, false);
+    } else {
+      request = new CreateContainerRequest(containerName, true);
+    }
     try {
-      WebTarget webTarget = getTarget(CoordConsts.SVC_RSC_INIT_CONTAINER);
+      String resource = Paths.get(CoordConsts.SVC_KEY_CONTAINER_NAME).toString();
+      WebTarget webTarget = getTargetV2(resource);
 
-      MultiPart multiPart = new MultiPart();
-      multiPart.setMediaType(MediaType.MULTIPART_FORM_DATA_TYPE);
+      Response response =
+          webTarget
+              .request(MediaType.APPLICATION_JSON)
+              .header(CoordConsts.SVC_KEY_API_KEY, _settings.getApiKey())
+              .header(CoordConsts.SVC_KEY_VERSION, Version.getVersion())
+              .post(Entity.json(request));
 
-      addTextMultiPart(multiPart, CoordConsts.SVC_KEY_API_KEY, _settings.getApiKey());
-      if (containerName != null) {
-        addTextMultiPart(multiPart, CoordConsts.SVC_KEY_CONTAINER_NAME, containerName);
-      } else {
-        addTextMultiPart(multiPart, CoordConsts.SVC_KEY_CONTAINER_PREFIX, containerPrefix);
-      }
+      _logger.debug(response.getStatus() + " " + response.getStatusInfo() + " " + response + "\n");
 
-      JSONObject jObj = postData(webTarget, multiPart);
-      if (jObj == null) {
+      if (response.getStatus() != Status.CREATED.getStatusCode()) {
+        _logger.error("initContainer: Did not get expected response\n");
+        _logger.error(response.readEntity(String.class) + "\n");
         return null;
       }
-
-      if (!jObj.has(CoordConsts.SVC_KEY_CONTAINER_NAME)) {
-        _logger.errorf("container name key not found in: %s\n", jObj.toString());
-        return null;
-      }
-
-      return jObj.getString(CoordConsts.SVC_KEY_CONTAINER_NAME);
+      return Paths.get(response.getLocation().getPath()).getFileName().toString();
     } catch (Exception e) {
-      _logger.errorf("exception: ");
+      _logger.errorf(
+          "Exception in initContainer from %s for %s\n",
+          _coordWorkMgrV2, Strings.isNullOrEmpty(containerName) ? containerPrefix : containerName);
       _logger.error(ExceptionUtils.getFullStackTrace(e) + "\n");
       return null;
     }

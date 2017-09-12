@@ -8,18 +8,23 @@ import static org.glassfish.jersey.client.ClientProperties.FOLLOW_REDIRECTS;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertThat;
 
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.TreeSet;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.batfish.common.BatfishLogger;
 import org.batfish.common.Container;
 import org.batfish.common.CoordConsts;
 import org.batfish.coordinator.config.Settings;
+import org.batfish.datamodel.pojo.CreateContainerRequest;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -88,6 +93,28 @@ public class WorkMgrServiceV2Test extends JerseyTest {
     Response response = target().path(BASE_CONTAINER_PATH).path(containerName).request().get();
     assertThat(response.getStatus(), equalTo(OK.getStatusCode()));
     assertThat(response.readEntity(new GenericType<Container>() {}), equalTo(expected));
+  }
+
+  @Test
+  public void testCreateContainerWithRequest() {
+    String baseContainerPath =
+        Paths.get(CoordConsts.SVC_CFG_WORK_MGR2, CoordConsts.SVC_KEY_CONTAINER_NAME).toString();
+    CreateContainerRequest request = new CreateContainerRequest("someContainer", false);
+    Response response = target().path(baseContainerPath).request().post(Entity.json(request));
+    assertThat(response.getStatus(), equalTo(Status.CREATED.getStatusCode()));
+  }
+
+  @Test
+  public void testCreateContainer() {
+    String path = Paths.get(BASE_CONTAINER_PATH, "someContainer").toString();
+    Response response =
+        target().path(path).request().post(Entity.entity(String.class, MediaType.APPLICATION_JSON));
+    assertThat(response.getStatus(), equalTo(Status.CREATED.getStatusCode()));
+    response =
+        target().path(path).request().post(Entity.entity(String.class, MediaType.APPLICATION_JSON));
+    assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));
+    String expectedMessage = "Container 'someContainer' already exists!";
+    assertThat(response.readEntity(String.class), containsString(expectedMessage));
   }
 
   @Test

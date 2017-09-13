@@ -169,7 +169,7 @@ public class BfCoordWorkHelper {
               .delete();
 
       if (response.getStatus() != Status.NO_CONTENT.getStatusCode()) {
-        _logger.error("delContainer: Did not get an noContent response\n");
+        _logger.error("delContainer: Did not get the expected response\n");
         _logger.error(response.readEntity(String.class) + "\n");
         return false;
       }
@@ -463,7 +463,7 @@ public class BfCoordWorkHelper {
       _logger.debug(response.getStatus() + " " + response.getStatusInfo() + " " + response + "\n");
 
       if (response.getStatus() != Response.Status.OK.getStatusCode()) {
-        _logger.error("GetContainer: Did not get an OK response\n");
+        _logger.error("GetContainer: Did not get the expected response\n");
         _logger.error(response.readEntity(String.class) + "\n");
         return null;
       }
@@ -587,6 +587,10 @@ public class BfCoordWorkHelper {
     return _client.target(urlString);
   }
 
+  /**
+   * Returns a {@link WebTarget webTarget} for BatFish service V2 by resolving {@code resource} to
+   * base url of service V2.
+   */
   private WebTarget getTargetV2(String resource) {
     String protocol = (_settings.getSslDisable()) ? "http" : "https";
     String urlString =

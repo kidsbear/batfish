@@ -110,6 +110,7 @@ public class WorkMgrServiceV2Test extends JerseyTest {
     Response response =
         target().path(path).request().post(Entity.entity(String.class, MediaType.APPLICATION_JSON));
     assertThat(response.getStatus(), equalTo(Status.CREATED.getStatusCode()));
+    // Create existing container
     response =
         target().path(path).request().post(Entity.entity(String.class, MediaType.APPLICATION_JSON));
     assertThat(response.getStatus(), equalTo(Status.INTERNAL_SERVER_ERROR.getStatusCode()));

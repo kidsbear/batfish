@@ -48,6 +48,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -672,5 +674,17 @@ public class CommonUtil {
       throw new BatfishException(
           "Failed to write input stream to output file: '" + outputFile + "'");
     }
+  }
+
+  /**
+   * Returns an URI by resolving each URI segment in {@code segments} to the end of the base URI
+   * of {@code uriInfo}.
+   */
+  public static URI getFullUri(UriInfo uriInfo, List<String> segments) {
+    UriBuilder builder = UriBuilder.fromUri(uriInfo.getBaseUri());
+    for (String segment : segments) {
+      builder.path(segment);
+    }
+    return builder.build();
   }
 }
